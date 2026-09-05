@@ -11,3 +11,4 @@
 *.sha256 text eol=lf
 lean-toolchain text eol=lf
 *.pdf binary
+*.png binary

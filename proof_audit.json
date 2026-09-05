@@ -59,8 +59,19 @@
     3,
     7
   ],
-  "pdf_pages": 36,
+  "pdf_pages": 40,
   "checker_regression_cases": 12,
   "latex_layout_warnings": 0,
-  "qualified_axiom_reports": 362
+  "qualified_axiom_reports": 362,
+  "png_figures": 5,
+  "png_dpi": 450,
+  "nasdaq_order_types": 17,
+  "nasdaq_attributes": 13,
+  "independent_numerical_review": {
+    "figure_data_fields_checked": 28,
+    "reachable_runs_checked": 15306,
+    "state_compositions_checked": 168744,
+    "pass_wheel_bounds_checked": 15306,
+    "phase_pairs_separated": 2310
+  }
 }

@@ -16,7 +16,7 @@ Traceability.*
 Splitting an incoming quantity into smaller orders can change who receives
 shares if a round-robin allocation wheel restarts each time. The formal
 development proves that preserving the wheel's position and remaining lot
-allowance restores consistency between split and combined quantities under
+allowance restores consistency between split and combined quantities with no intervening order-book changes and under
 the stated assumptions. On reachable states, the allowance can be recovered
 from the current participant's cumulative allocation. Further results identify
 the pointer information needed to predict future fills on specified families
@@ -34,6 +34,9 @@ paper and the [Lean source guide](lmr/README.md).
 | `fmm.pdf` | Paper 1, including its regulatory appendix |
 | `fmm.tex`, `refs.bib` | Paper and bibliography sources |
 | `lmr/` | Lean definitions, proofs, allocation checker, and audit scripts |
+| `figures/` | Five 450-dpi PNG figures and Lean-exported numerical data |
+| `scripts/` | Data exporter, independent numerical checks, and figure renderer |
+| `numerical_review.json` | Finite numerical verification results |
 | `.github/workflows/lean.yml` | Automated Lean build and checker verification |
 | `build_release.sh` | Reproducible PDF build entry point |
 | `proof_audit.json` | Declaration counts and classical-choice dependency list |
@@ -70,7 +73,8 @@ allocations, so its output includes both acceptance and rejection messages.
 
 The **Lean artifact** workflow runs on pushes, pull requests, and manual
 dispatch. It builds the Lake package in `lmr/`, runs the static audit, builds
-the checker, and exercises its sample and regression cases. Results appear in
+the checker, exercises its sample and regression cases, and checks
+Lean-exported figure data against an independent Python implementation. Results appear in
 the repository's **Actions** tab. The workflow's action references are pinned
 to commits, and its token has read-only repository-content permissions.
 
@@ -95,6 +99,35 @@ sha256sum -c MANIFEST.sha256
 ```
 
 The manifest excludes itself and generated build files.
+
+## Figures and numerical checks
+
+The five PNG figures visualize allocation, the computed water-level bound,
+stream composition, auction price selection, and future-state probes. They
+are generated from the executable Lean definitions and independently checked
+in Python. They illustrate the mathematical model and are not empirical data.
+
+To regenerate all figure inputs and images from the repository root:
+
+```sh
+cd lmr
+lake build
+lake env lean --run ../scripts/export_figure_data.lean > ../figures/figure_data.json
+cd ..
+python3 scripts/numerical_review.py
+python3 -m pip install -r scripts/requirements-figures.txt
+python3 scripts/generate_figures.py
+sh build_release.sh
+```
+
+The supplied PNGs are ready for LaTeX; Matplotlib is needed only to regenerate
+them. The independent checks cover 15,306 reachable runs, 168,744 split-versus-
+combined comparisons, 15,306 pass-wheel bounds, and 2,310 phase pairs.
+These finite checks supplement the general Lean proofs.
+
+The Nasdaq catalogue includes 17 named order types and 13 lettered attribute
+families under Rules 4702(b)(1)-(17) and 4703(a)-(m). Extended Trading Close is
+included as a type; Rule 4755 procedures remain outside the fixed ledger.
 
 ## Scope
 

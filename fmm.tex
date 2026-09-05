@@ -12,6 +12,10 @@
 \usepackage{amsmath,amssymb,amsthm}
 \usepackage{booktabs,array,longtable,xcolor}
 \usepackage{listings}
+\usepackage{graphicx}
+\usepackage{caption}
+\captionsetup{font=small,labelfont=bf}
+\usepackage[section]{placeins}
 \usepackage{microtype}
 \usepackage{xurl}
 \usepackage{enumitem}
@@ -87,7 +91,7 @@ Lean 4.22.0 checks 362 theorem declarations using its core library. Axiom depend
 \section{Introduction}
 
 \subsection{The claim}
-An exchange receives marketable quantity as a stream. If 200 shares arrive at once or as two consecutive orders of 100, a stream-consistent allocation mechanism should reach the same final state after processing the same total quantity. Price--time has this property using residual claims alone. A parity wheel does not: if every execution restarts at the first participant, order segmentation changes who trades.
+An exchange receives marketable quantity as a stream. If 200 shares arrive at once or as two consecutive orders of 100, with no intervening order-book changes, a stream-consistent allocation mechanism should reach the same final state after processing the same total quantity. Price--time has this property using residual claims alone. A parity wheel does not: if every execution restarts at the first participant, order segmentation changes who trades.
 
 The paper's central contribution is a state-and-information result. First, an executable counterexample proves that reset rotation violates Moulin composition. Second, a wheel that persists its participant pointer and unfinished round-lot phase satisfies exact split-versus-combined consistency on every reachable state and every admissible first estate. Third, for any indexed nondegenerate family with the same authenticated observation, future sufficiency forces a summary to encode the pointer injectively, and the pointer is itself a sufficient code once the family is fixed. A reachable full-allowance family realizes the exact $m$-state bound. Finally, on every reachable live-head state, the unused allowance is $L-(A_p\bmod L)$. Consequently, when participant-aligned cumulative fills are available, the allowance is derived rather than separately stored and the pointer label is the remaining phase datum in the stated observation model.
 
@@ -115,6 +119,15 @@ No programming or proof-theory background is required to understand the economic
 \paragraph{Abbreviations.} NBBO is the national best bid and offer; NBB and NBO are its bid and offer components. SIP is a securities information processor; ISO is an intermarket sweep order; DMM is a designated market maker; SRO is a self-regulatory organization; ATS is an alternative trading system; LULD is the Limit Up--Limit Down Plan; NMS is the national market system; and Reg SHO is Regulation SHO.
 
 \paragraph{A running example.} Suppose the queue is $(200,300,500)$ and 600 shares arrive. Price--time gives $(200,300,100)$ because it finishes earlier orders before later ones. A parity wheel with a 100-share round lot can give $(200,200,200)$ by visiting each participant repeatedly. Both allocate 600 shares without exceeding any resting order, but they express different ideas of priority and balance. Much of the paper formalizes that difference.
+
+Figure~\ref{fig:allocation} shows the running example in queue order: both mechanisms clear the incoming quantity while leaving different residual claims.
+
+\begin{figure}[tbp]
+\centering
+\includegraphics[width=\linewidth]{figures/allocation_comparison.png}
+\caption{Price--time and parity on the same queue $Q=(200,300,500)$ with $x=600$. Colored segments are fills; the pale remainder is unfilled capacity. Price--time fills $(200,300,100)$, whereas the 100-share wheel fills $(200,200,200)$. Each row represents one participant, and both mechanisms allocate exactly 600 shares.}
+\label{fig:allocation}
+\end{figure}
 
 \subsection{Related work}
 Formal work on exchange mechanisms is directly relevant. \citet{sarswat2020} formalize fairness, uniformity, and individual rationality for financial-market trades; \citet{natarajan2021} extend verified double auctions to multiple quantities, prove uniqueness results, extract programs, and test them on market data; and \citet{garg2022} specify continuous double auctions, prove that three properties determine their input--output relation, and extract a verified trade-log checker. Verified financial software also includes the Imandra dark-pool analysis of \citet{passmore2017formal} and its later exchange digital-twin work \citep{brennan2024imandra}, as well as contract languages \citep{bahr2015certified}; formal law includes Catala \citep{merigoux2021catala}. The present contribution is narrower and complementary: machine-checked integer models of price--time allocation, NYSE-inspired setter/parity allocation, their rationing identities, and selected cross-market rule fragments. It does not claim the first formalization of exchange matching or automated conformance checking.
@@ -155,7 +168,7 @@ A fill is an executed size. A queue-aligned allocation record is the vector of f
 An allocation of $x$ over $Q$ is a list $A\in\N^m$. An operator is a function $x\mapsto(A,x')$ giving fills and leftover (\lean{Op}).
 \end{definition}
 
-For equal-length allocation lists, write $A\oplus B:=\lean{List.zipWith (fun a b => a+b) A B}$ for componentwise addition. Every displayed sum of allocation vectors below uses $\oplus$.
+For equal-length lists, write $A\oplus B:=\lean{List.zipWith (fun a b => a+b) A B}$ for componentwise addition and $Q\ominus A:=\lean{List.zipWith Nat.sub Q A}$ for residual claims. Here natural-number subtraction is truncated at zero. Every displayed sum of allocation vectors below uses $\oplus$.
 
 Pointwise relations between lists of equal length are written with the inductive predicate $\lean{Pw}\,P$ (\lean{Pw.nil}, \lean{Pw.cons}).
 
@@ -189,7 +202,7 @@ $L=100$. Four participants---a market maker, two brokers, and an aggregated elec
 \section{The algebra of operators}\label{sec:algebra}
 
 \begin{definition}[Sequential composition; \lean{seq}, \lean{idOp}, \lean{ladderOp}]
-$(f\rhd g)(x)=(A_f\mathbin{+\!\!+}A_g,\,x'_g)$ where $(A_f,x'_f)=f(x)$ and $(A_g,x'_g)=g(x'_f)$. The identity allocates nothing. A ladder is the right fold of its level operators under $\rhd$.
+$(f\rhd g)(x)=(A_f\mathbin{+\!\!+}A_g,\,x'_g)$ where $(A_f,x'_f)=f(x)$ and $(A_g,x'_g)=g(x'_f)$. The identity allocates nothing. A ladder is the right fold of its level operators under $\rhd$. Here $+\!\!+$ denotes list concatenation; $\oplus$ instead adds aligned fills on the same participant list.
 \end{definition}
 
 \begin{definition}[Conservation; \lean{Conserves}]
@@ -262,6 +275,16 @@ For each run, the executable value $w=\lean{wheelLevel}\,L\,n\,(\lean{initS}\,Q)
 \end{theorem}
 The run-dependent level is computable from the pass trace. At $L=1$, \lean{wheelS\_unit\_balanced} and \lean{runW\_unit\_balanced} reduce the band to the indivisible-claims balancedness condition $a_i\le a_j+1$ for every unexhausted $j$, matching the benchmark of \citet{herrero2008}.
 
+Figure~\ref{fig:band} makes the executable witness explicit for Example~\ref{ex:hybrid}. Its computed level need not be the level that clears the same estate in the benchmark.
+
+\begin{figure}[tbp]
+\centering
+\includegraphics[width=\linewidth]{figures/wheel_water_level.png}
+\caption{The post-setter parity pool has claims $(300,500,0,1000)$, lot $L=100$, and incoming quantity 1,100. With fuel 20, \lean{wheelLevel} returns $w=300$, producing benchmark $(300,300,0,300)$ and wheel fills $(300,400,0,400)$. The coordinate differences $(0,100,0,100)$ are at most one lot. The different benchmark level $s=400$ clears all 1,100 shares and coincides with the wheel in this example; the theorem uses the explicitly computed $w$.}
+\label{fig:band}
+\end{figure}
+
+\FloatBarrier
 \begin{corollary}[Vanishing-lot analytic limit]\label{thm:continuum}
 Fix a participant count $m\ge1$. For run $k$, let $Q^{(k)}\in\N^m$, lot $L_k$, fill vector $a^{(k)}$, and executable water level $w_k$ be the quantities in Theorem~\ref{thm:within}. For any real scale $c_k>0$,
 \[
@@ -355,7 +378,7 @@ Price--time satisfies estate composition (Axiom~\ref{ax:comp}):
 \[
 \lean{priceTime}\,Q\,(x+y)
 =\lean{priceTime}\,Q\,x
-\oplus\lean{priceTime}\,(Q-\lean{priceTime}\,Q\,x)\,y.
+\oplus\lean{priceTime}\,(Q\ominus\lean{priceTime}\,Q\,x)\,y.
 \]
 The benchmark instead satisfies a \emph{water-level} identity,
 $\min\{q,s+t\}=\min\{q,s\}+\min\{q-\min\{q,s\},t\}$ pointwise. This identity is not Axiom~\ref{ax:comp} on an integer estate domain: for claims $(10,10)$, every natural water level clears an even number of shares, so no level represents the one-share estate. Thus natural water levels do not parameterize the full integer estate domain $0\le E\le\sum q_i$.
@@ -410,8 +433,17 @@ The reachable-state allowance invariant makes positivity automatic. The supporti
 On the counterexample above, the persistent wheel allocates $100$ then $100$ as $(100,100)$, the same as $200$ at once; $150$ then $150$ gives the same state as $300$ at once, the partial lot carrying across the boundary.
 \end{example}
 
+Figure~\ref{fig:composition} compares reset and persistent executions and records a partial-lot transition.
+
+\begin{figure}[tbp]
+\centering
+\includegraphics[width=\linewidth]{figures/stream_composition.png}
+\caption{Segmentation changes a reset wheel but preserves the modeled persistent wheel. Start with claims $(300,300)$, lot 100, and pointer A. One 200-share estate gives $(100,100)$; two reset 100-share estates give $(200,0)$. The persistent wheel gives $(100,100)$ in both cases. The partial-lot example also preserves the complete state: 150 followed by 150 agrees with 300 at once. Fills and state labels are restored to the fixed external order $(\mathrm A,\mathrm B)$.}
+\label{fig:composition}
+\end{figure}
+
 \subsection{What the theorem establishes}
-Exchange documentation specifies that parity allocation proceeds from an allocation wheel and that the wheel advances across executions \citep{nyse2024parity}. Theorems~\ref{thm:pointer-band} and~\ref{thm:pointer-full} place balance and exact split/combined equality on one executable construction. Example~\ref{thm:pointer-necessary}, Theorem~\ref{thm:fiber-pointer}, and Theorem~\ref{thm:saturated-quotient} below use explicit, different observation contracts: the four-party collision requires pointer information beyond queue and fills; the fiber theorem gives exact pointer necessity and sufficiency conditional on a common authenticated observation; and the $mL$ result bounds a complete predictive summary without separate side inputs. Corollary~\ref{cor:allowance-recovery} proves that cumulative allocation determines the allowance on every reachable live-head state. These statements concern the modeled wheel and do not characterize all banded stream-consistent mechanisms.
+Exchange documentation specifies that parity allocation proceeds from an allocation wheel and that the wheel advances across executions \citep[questions 7--8]{nyse2024parity}. The FAQ supports persistent rotation; it does not establish this paper's particular partial-lot carry rule or equivalence to the complete exchange engine. Theorems~\ref{thm:pointer-band} and~\ref{thm:pointer-full} place balance and exact split/combined equality on one executable construction. Example~\ref{thm:pointer-necessary}, Theorem~\ref{thm:fiber-pointer}, and Theorem~\ref{thm:saturated-quotient} below use explicit, different observation contracts: the four-party collision requires pointer information beyond queue and fills; the fiber theorem gives exact pointer necessity and sufficiency conditional on a common authenticated observation; and the $mL$ result bounds a complete predictive summary without separate side inputs. Corollary~\ref{cor:allowance-recovery} proves that cumulative allocation determines the allowance on every reachable live-head state. These statements concern the modeled wheel and do not characterize all banded stream-consistent mechanisms.
 
 \plain{If a 200-share execution is processed as two consecutive 100-share executions, a stream-consistent mechanism should end in the same state either way. A wheel that forgets its position can fail. The persistent wheel passes this test for every reachable state and admissible first estate. Its unused allowance can always be recovered from the cumulative fill at the current pointer; the pointer label remains the phase datum that aligned fills do not necessarily reveal.}
 
@@ -481,6 +513,15 @@ Demand is antitone and supply monotone in price. Over a nonempty finite candidat
 Bids $\{(10.02,500),(10.01,300),(10.00,400),(9.99,200)\}$, asks $\{(9.98,300),(10.00,300),(10.01,400),(10.03,500)\}$: the auction clears at $10.01$ with $800$ matched and a $200$-share sell imbalance ($10.00$ would match $600$, $10.02$ only $500$); with reference $10.00$ the three-criterion price is still $10.01$; a $200$-share residual against a $500$-share commitment clears.
 \end{example}
 
+Figure~\ref{fig:auction} displays the demand, supply, and matched-volume calculations in the example.
+
+\begin{figure}[tbp]
+\centering
+\includegraphics[width=\linewidth]{figures/auction_price_selection.png}
+\caption{The auction example selects $\$10.01$: demand is 800 shares and supply 1,000, giving 800 matched and a 200-share sell imbalance. At $\$10.00$ and $\$10.02$, matched volumes are only 600 and 500. The step curves use the inclusive limit-price conditions in \lean{demandAt} and \lean{supplyAt}; the right panel compares three candidate prices.}
+\label{fig:auction}
+\end{figure}
+
 \plain{An auction tests candidate prices. At each price it computes how many shares buyers and sellers could trade, selects the price with the greatest matched volume, then uses imbalance and distance from a reference price as tie-breakers. ``Lexicographic'' means applying those criteria in that fixed order, like sorting first by surname and then by given name.}
 
 \newcommand{\StrategicAppendix}{%
@@ -497,7 +538,7 @@ If $D=e+O$, $VO=D^2$, $t=e'+O>0$ and $D>0$, then $(Ve'-e't)D\le(Ve-eD)t$, i.e.\ 
 $Dt\,[\pi(e)-\pi(e')]=D(D-t)^2$ under $VO=D^2$: a positive number times a square.
 \end{proof}
 \begin{theorem}[Symmetric equilibrium and dissipation; \lean{tullock\_symmetric\_foc}, \lean{tullock\_dissipation}, \lean{dissipation\_increasing}]
-If $m^2e=(m-1)V$ then the first-order condition holds at $O=(m-1)e$, total effort satisfies $m\cdot me=(m-1)V$, and $(m-1)(m+1)<m^2$: a fraction $(m-1)/m$ of the prize is dissipated and is strictly increasing in $m$.
+For $m\ge2$ and $V>0$, if a nonnegative integer $e$ satisfies $m^2e=(m-1)V$, then $e>0$ and the first-order condition holds at $O=(m-1)e$, total effort satisfies $m\cdot me=(m-1)V$, and $(m-1)(m+1)<m^2$: a fraction $(m-1)/m$ of the prize is dissipated and is strictly increasing in $m$.
 \end{theorem}
 \begin{example}[\lean{ex\_tullock}, \lean{ex\_tullock\_dev}]
 $m=4$, $V=1200$: $e=225$, $D=900$, $O=675$, $VO=810{,}000=D^2$; the deviation $e'=300$ is unprofitable.
@@ -509,7 +550,7 @@ Two racers invest speed $b_1,b_2\ge0$ (sunk) for a tranche $S$; the faster wins,
 For $S\ge3$ no profile is a pure equilibrium: ties invite a one-unit raise, gaps of two or more invite undercutting, and a gap of one invites the loser to drop out or leapfrog. In every profile the doubled payoffs sum to $2S-2(b_1+b_2)$.
 \end{theorem}
 \begin{theorem}[Uniform mixture is an $\varepsilon$-equilibrium; \lean{sumU}, \lean{sumU\_closed}, \lean{uniform\_payoff}, \lean{uniform\_eps}, \lean{uniform\_selfpayoff\_zero}, \lean{uniform\_eps\_relative}]
-On the grid $\{0,\dots,N\}$ with prize $N$ and a uniform opponent, the $(N+1)$-scaled doubled payoff of bid $b$ is $N-2b$; the uniform strategy's own scaled payoff is $0$; the best pure deviation improves expected payoff by less than half a cost unit, and relative to the prize the gain is less than $1/N$.
+For $N\ge1$, on the grid $\{0,\dots,N\}$ with prize $N$ and a uniform opponent, the $(N+1)$-scaled doubled payoff of bid $b$ is $N-2b$; the uniform strategy's own scaled payoff is $0$; the best pure deviation improves expected payoff by less than half a cost unit, and relative to the prize the gain is less than $1/N$.
 \end{theorem}
 These identities give the finite-grid dissipation result for the all-pay auction \citep{baye1996allpay}.
 
@@ -638,6 +679,15 @@ degeneracies is not asserted.
 For $m=3$, $L=100$, and pointer $p=1$, an estate of $41$ gives label 1 exactly $40$ shares in $P_{1,40}$ but $41$ in $P_{1,80}$. Both states are reachable and all remaining claims exceed the probe. The different cumulative allocations ($60$ and $20$ at the pointer) also reveal why providing those allocations changes the information question. Claims above $L$ are needed only to keep this finite separating probe away from exhaustion; no infinite-backlog assumption is made.
 \end{example}
 
+Figure~\ref{fig:probes} separates the pointer probe from the allowance probe and shows why cumulative-fill side information changes the latter question.
+
+\begin{figure}[tbp]
+\centering
+\includegraphics[width=\linewidth]{figures/future_state_probes.png}
+\caption{Finite separating probes in the reachable family with $m=3$, $L=100$, and original claims 201. Left: full-allowance phases have identical zero cumulative fills, yet the first share distinguishes pointers 1 and 2. Right: with pointer 1 fixed, the estate $x=41$ distinguishes allowances 40 and 80: new fills are $(0,40,1)$ and $(0,41,0)$. These two phases have different cumulative fills, 60 and 20 at the pointer. When those fills are available, $a=L-(A_p\bmod L)$ recovers the allowance, as in Corollary~\ref{cor:allowance-recovery}.}
+\label{fig:probes}
+\end{figure}
+
 For comparison, \lean{saturatedOwner} defines an idealized infinite-backlog phase formula with elementary trace-injectivity lemmas. Those lemmas are separate from, and unnecessary for, the finite executable theorem above.
 
 \plain{A public trade tape records executions but does not normally expose the full prior order queue or a participant-aligned allocation vector. Even when an auditor has the stronger aligned record used by these theorems, different hidden queues or pointer states can generate the same fills. The results state exactly what can still be inferred and what cannot be reconstructed from those inputs alone.}
@@ -685,7 +735,7 @@ Two clocks & \lean{Ev} & Nonnegative latency, order preservation at equal latenc
 Order types & Midpoint, reserve, discretionary, peg, and post-only kernels & Floored midpoint is in $[\NBB,\NBO)$; exact doubled midpoint is strictly inside; one-refresh conservation, peg monotonicity/no-lock, and non-taking properties. & The floored grid midpoint can equal the NBB at a one-unit spread; not a complete venue order life cycle or interaction model \citep{nasdaq2026equity4}. & \lean{VenueBookState}; Nasdaq type/attribute catalogues \\[2pt]
 LULD & \lean{luldBands}; \lean{limitState\_boundary} & Static bands contain the reference and widen with the percentage. & Dynamic reference, tiers, timing, pauses, reopening, dissemination, and procedures are not kernel theorems. & \lean{LuldPlanState} \\[2pt]
 Rule~201 & \lean{shortSaleOK} & While the supplied trigger is active, modeled short executions must be above NBB. & Trigger, duration, marking, policies, handling, and exceptions are not derived by this kernel. & \lean{Rule201State}; exception types \\[2pt]
-Rule~605 & \lean{effSpread2} & Signed $\Z$ kernel is bounded above by quoted spread, vanishes at an exact midpoint, and preserves below-midpoint magnitude. & Not by itself a side-aware reporting system; September and November profiles differ \citep{sec2024rule605,sec2026rule605faq,sec2026rule605order}. & \lean{Rule605Report}; dated profile; exhaustive field types \\[2pt]
+Rule~605 & \lean{effSpread2} & For $px\le\NBO$, the signed $\Z$ kernel is bounded above by quoted spread; it vanishes at an exact midpoint and preserves below-midpoint magnitude. & Not by itself a side-aware reporting system; September and November profiles differ \citep{sec2024rule605,sec2026rule605faq,sec2026rule605order}. & \lean{Rule605Report}; dated profile; exhaustive field types \\[2pt]
 Auctions & \lean{crossPrice3}; \lean{dmmFacilitate} & Lexicographic price key; sufficient facilitation clears residual and conserves. & Eligibility, imbalance publication, collars, freezes, reopening, floor procedures, and venue tie-breaks remain external. & \lean{NasdaqCrossState}; \lean{NyseAuctionState} \\[2pt]
 State inference & Fingerprint, collision, and wheel-information theorems & Proves general nondegenerate phase separation, exact pointer necessity/sufficiency on common-observation fibers, reachable allowance recovery, and exact separation of $mL$ complete-summary phases. & The $mL$ bound omits side inputs; with aligned cumulative fills supplied, the reachable full-allowance fiber has exactly $m$ pointer states and the allowance is redundant on every reachable live-head state. & Analytic only; reconstruction evidence is external \\[2pt]
 Conformance & \lean{conformsPT}; \lean{conformsPT\_comp}; \lean{diagnose} & Boolean equivalence to feasibility and seriality; first failure is named; individually conforming consecutive runs compose. & Price--time needs an authentic queue and order-to-fill alignment; parity additionally needs authenticated pointer state; neither is production-engine or transport certification. & Analytic only; production equivalence is external \\
@@ -701,13 +751,13 @@ The traceability unit is an expressly cited paragraph, paragraph range, or ident
 
 \subsection{Fixed and dated corpus}
 
-The 58 rows comprise 43 federal and federal-supporting ranges, five LULD Plan ranges, three NYSE ranges, and seven Nasdaq ranges. The federal snapshot is the eCFR text current through September~2, 2026, read with operative-date, guidance, and exemptive-relief materials; venue texts were accessed September~4, 2026 \citep{ecfr2026regnms,ecfr2026regsho,nyse2026rules,nasdaq2026equity4,luld2026plan}. The corpus is:
+The 58 rows comprise 43 federal and federal-supporting ranges, five LULD Plan ranges, three NYSE ranges, and seven Nasdaq ranges. The federal snapshot is the eCFR text current through September~2, 2026, read with operative-date, guidance, and exemptive-relief materials; NYSE and LULD texts were accessed September~4, 2026, and the Nasdaq catalogue and cited ranges were checked again on September~5, 2026 \citep{ecfr2026regnms,ecfr2026regsho,nyse2026rules,nasdaq2026equity4,luld2026plan}. The corpus is:
 
 \begin{itemize}[leftmargin=*]
   \item three Rule~600(b) rows---general incorporated definitions, paragraph (89)(i)(F) minimum-increment indicator with its June~2026 relief profile, and paragraph (93) round-lot tiers---plus eight Rule~610 ranges, six Rule~611 ranges, seven Rule~612 ranges, nine Rule~201 ranges, and ten Rule~605 rule/guidance/order ranges, so $3+8+6+7+9+10=43$;
   \item five operative LULD Plan ranges grouping definitions and coverage, reference and numerical rules, band and pause states, reopening and halts, and dissemination/policy/overnight duties;
   \item NYSE Rules~7.31(a)--(i), 7.35 general/A/B, and 7.37(a)--(g); and
-  \item Nasdaq Rules~4702(a), 4702(b)(1)--(16), 4703(a)--(l), 4752(a)--(f), 4753(a)--(f), 4754(a)--(c), and 4757(a)--(c).
+  \item Nasdaq Rules~4702(a), 4702(b)(1)--(17), 4703(a)--(m), 4752(a)--(d), 4753(a)--(e), 4754(a)--(b), and 4757(a)--(c).
 \end{itemize}
 
 These counts describe mapping granularity. They are not a count of every nested sentence, proviso, cross-reference, or provision elsewhere in the Exchange Act, Regulation NMS, Regulation SHO, or the complete venue rulebooks. Completeness is claimed only for finite formal catalogues whose constructors and advertised lists are explicitly compared by Lean.
@@ -748,7 +798,7 @@ Paragraph (93) has the numerical \lean{roundLotSize600} kernel: 100 shares throu
 
 The amended schema is finite and encoded without ellipses. \lean{OrderType605} has ten covered order classes. \lean{CoreField605}, \lean{ImmediateField605}, \lean{NonmarketableField605}, and \lean{SummaryField605} contain 25, 19, 4, and 12 fields. Five \lean{*605\_complete} theorems prove by exhaustive case analysis that each full-schema list contains every constructor.
 
-The general amended rule began August~1, 2026. SEC Rule~605 FAQ~39, answer A.39, states that collection of the five best-available-displayed-price statistics begins November~1, 2026 and that the first reports containing them are due at the end of December~2026; FAQ footnote~2 identifies ten order types per security \citep{sec2026rule605faq}. \lean{Rule605Profile} therefore distinguishes \lean{augustThroughOctober2026} from \lean{november2026AndLater}. The first profile requires 14 immediate fields and the second all 19. Theorems prove both branches and reject the 19-field profile for September. \lean{Rule605Report} also records the treatments in Sections~II.A--II.B of the April~1, 2026 order, Exchange Act Release No.~34-105136 \citep{sec2026rule605order}. \lean{publicationRoute605} uses uniform plan access when an effective joint plan exists and the free, machine-readable website fallback otherwise.
+The general compliance date for the 2024 Rule~605 amendments was August~1, 2026. SEC Rule~605 FAQ~39, answer A39, states that collection of the five best-available-displayed-price statistics begins November~1, 2026 and that the first reports containing them are due at the end of December~2026; FAQ footnote~2 identifies ten order types per security \citep{sec2026rule605faq}. \lean{Rule605Profile} therefore distinguishes \lean{augustThroughOctober2026} from \lean{november2026AndLater}. The first profile requires 14 immediate fields and the second all 19. Theorems prove both branches and reject the 19-field profile for September. \lean{Rule605Report} also records the treatments in Sections~II.A--II.B of the April~1, 2026 order, Exchange Act Release No.~34-105136 \citep{sec2026rule605order}. \lean{publicationRoute605} uses uniform plan access when an effective joint plan exists and the free, machine-readable website fallback otherwise.
 
 \subsection{Plan and venue specifications}
 
@@ -758,7 +808,7 @@ The general amended rule began August~1, 2026. SEC Rule~605 FAQ~39, answer A.39,
 
 \subsubsection{Nasdaq}
 
-\lean{NasdaqOrderType4702} has all sixteen Rule~4702 order types and \lean{NasdaqAttribute4703} all twelve Rule~4703 attribute families. Their exhaustiveness theorems establish list completeness. \lean{VenueBookState} covers session eligibility, type semantics, attribute compatibility, Reg NMS and Reg SHO repricing, timestamp behavior, priority, routing, data and fallback sources, locks, self-help, cancellation, and re-entry. \lean{NasdaqCrossState} covers definitions, eligible interest, imbalance data and schedules, price hierarchy, collars, allocation priority, uniform price, official-price dissemination, LULD/hybrid variants, and contingencies.
+\lean{NasdaqOrderType4702} enumerates the seventeen named types in Rule~4702(b)(1)--(17), including Market On Open and Extended Trading Close. \lean{NasdaqAttribute4703} enumerates the thirteen lettered families in Rule~4703(a)--(m), including Reserve Size, Attribution, and Trade Now. Non-display is treated within the display semantics rather than as an extra lettered paragraph. The exhaustiveness theorems establish completeness of these formal catalogues; they do not establish the order types\textquotesingle{} full behavior. The separate Extended Trading Close procedures in Rule~4755 are outside this ledger. \lean{VenueBookState} covers session eligibility, type semantics, attribute compatibility, Reg NMS and Reg SHO repricing, timestamp behavior, priority, routing, data and fallback sources, locks, self-help, cancellation, and re-entry. \lean{NasdaqCrossState} covers definitions, eligible interest, imbalance data and schedules, price hierarchy, collars, allocation priority, uniform price, official-price dissemination, LULD/hybrid variants, and contingencies.
 
 \subsubsection{NYSE}
 
@@ -797,7 +847,6 @@ Clause ledger & 58 unique rows have elaborated destinations and labels & Complet
 
 }
 
-\clearpage
 \section{Regulatory traceability: audit contract}\label{sec:clauses}\label{sec:companion}
 
 This layer supports exactly three claims: the preceding source proves mathematical deductions, a compiler-linked ledger provides traceability into a fixed legal and venue corpus, and real-world compliance still requires independent legal, evidentiary, and implementation review. The proof standards are deliberately different. Appendix~\ref{app:clauses} contains the detailed profiles, source ranges, record types, and pinpoints.
@@ -821,7 +870,6 @@ Exception or attestation & Encoded conditions and required Boolean fields are pr
 
 The ledger is therefore an inspection artifact attached to the mathematical paper, not evidence that any venue or broker-dealer complies with the mapped provisions.
 
-\clearpage
 \section{Scope and limitations}\label{sec:scope}
 
 \paragraph{Decided.} The formal statements attached to the named Lean declarations: three integer allocation operators and their proved algebraic properties; the large-lot wheel-pass endpoint; price--time uniqueness; balance and an explicit run-dependent water level for the pass-based wheel; feasibility of an estate-indexed unit-increment rule and failure of its reset version to compose; one-lot balance and canonical stream composition for the same persistent pointer wheel, with no allowance premise on reachable states; impossibility of parity conformance from queue and aligned fills without pointer evidence; general nondegenerate pointer--allowance separation; exact fiberwise pointer necessity and sufficiency under a common authenticated observation; exact future equivalence, reachability, and the $mL$ complete-summary lower bound for the finite phase family; the exact $m$ pointer bound on the reachable full-allowance common-observation fiber; allowance recovery from cumulative allocation on every reachable live-head state; relabeling equivariance; signed effective-spread arithmetic; cross-market, order-type, auction, observability, and strategic kernels; and price--time conformance equivalence and sequential composition. Section~\ref{sec:clauses} states the distinct fixed-corpus audit results. All 362 theorem declarations are kernel-checked, and the numerical worked examples are decided by evaluation. Fixed-length bit bounds are elementary deductions from the checked injectivity results. Corollary~\ref{thm:continuum} is a conventional real-analysis consequence of the machine-checked finite approximation bound; it is not represented as a separate Lean declaration.
@@ -888,7 +936,7 @@ Declaration & Required hypotheses / domain & Exact force of conclusion \\
 \subsection{Paper and source availability}
 The paper's DOI is \href{https://doi.org/10.5281/zenodo.22343804}{10.5281/zenodo.22343804}.
 
-The Lean source code, proof scripts, and reproducible build instructions will be made publicly available shortly at \url{https://github.com/MiquelNoguerAlonso/Formal-Verification}. The release will include the LaTeX sources, a deterministic build script, and a SHA-256 manifest for the distributed files. No empirical dataset is used.
+The Lean source code, proof scripts, and reproducible build instructions will be made publicly available shortly at \url{https://github.com/MiquelNoguerAlonso/Formal-Verification}. The release will include the LaTeX sources, the five PNG figures, their numerical data and generation scripts, a deterministic build script, and a SHA-256 manifest for the distributed files. The figure data are exported from the executable Lean definitions and checked by an independent Python calculation before rendering at 450 dpi. The figures visualize finite worked examples; they are not empirical estimates. No empirical dataset is used.
 
 \clearpage
 \RegulatoryAppendix

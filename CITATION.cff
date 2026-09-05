@@ -3,12 +3,12 @@ message: "If you use this paper or artifact, please cite it using this metadata.
 title: "Foundations of Formal Market Microstructure in U.S. Equities: Machine-Checked Allocation, Composition, Necessary State, and Regulatory Traceability"
 type: software
 repository-code: "https://github.com/MiquelNoguerAlonso/Formal-Verification"
-version: 3.6.0
+version: 3.7.0
 date-released: 2026-09-05
 authors:
   - family-names: "Noguer i Alonso"
     given-names: "Miquel"
-abstract: "A persistent allocation wheel restores split-versus-combined consistency lost under reset rotation. The artifact proves exact fiberwise pointer minimality, reachable allowance recovery, nondegenerate phase separation, finite-family predictive-summary bounds, one-lot balance, price-time conformance, and an analytic vanishing-lot limit, with dated regulatory traceability."
+abstract: "A persistent allocation wheel restores split-versus-combined consistency lost under reset rotation. The artifact proves exact fiberwise pointer minimality, reachable allowance recovery, nondegenerate phase separation, finite-family predictive-summary bounds, one-lot balance, and price-time conformance, with an analytic vanishing-lot corollary in the paper and dated regulatory traceability."
 keywords:
   - Market microstructure
   - U.S. equities
