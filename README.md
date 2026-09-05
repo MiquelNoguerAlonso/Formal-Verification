@@ -78,6 +78,8 @@ Lean-exported figure data against an independent Python implementation. Results 
 the repository's **Actions** tab. The workflow's action references are pinned
 to commits, and its token has read-only repository-content permissions.
 
+The LaTeX source is verified with pdfLaTeX on TeX Live 2023 and 2026.
+
 ## Rebuild the paper
 
 Install a TeX distribution with `latexmk`, `pdflatex`, `bibtex`, and the

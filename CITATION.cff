@@ -3,7 +3,7 @@ message: "If you use this paper or artifact, please cite it using this metadata.
 title: "Foundations of Formal Market Microstructure in U.S. Equities: Machine-Checked Allocation, Composition, Necessary State, and Regulatory Traceability"
 type: software
 repository-code: "https://github.com/MiquelNoguerAlonso/Formal-Verification"
-version: 3.7.0
+version: 3.7.1
 date-released: 2026-09-05
 authors:
   - family-names: "Noguer i Alonso"

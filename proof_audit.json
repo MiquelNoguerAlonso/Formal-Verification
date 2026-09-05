@@ -73,5 +73,11 @@
     "state_compositions_checked": 168744,
     "pass_wheel_bounds_checked": 15306,
     "phase_pairs_separated": 2310
-  }
+  },
+  "texlive_versions_verified": [
+    "2023",
+    "2026"
+  ],
+  "pdf_engine": "pdfLaTeX",
+  "pdf_tagging_enabled": false
 }
