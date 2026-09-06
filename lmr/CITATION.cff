@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+message: "If you use this formal artifact, please cite it using this metadata."
+title: "Lean Certificates for Foundations of Formal Market Microstructure in U.S. Equities"
+type: software
+repository-code: "https://github.com/MiquelNoguerAlonso/Formal-Verification"
+version: 3.7.1
+date-released: 2026-09-05
+authors:
+  - family-names: "Noguer i Alonso"
+    given-names: "Miquel"
+abstract: "Executable allocation, persistent wheel balance and reachable-state composition, exact fiberwise pointer minimality, a reachable allowance-phase invariant, general nondegenerate phase separation, exact predictive-summary bounds on finite wheel families, relabeling equivariance, conformance checking, and dated regulatory traceability."
+keywords:
+  - Market microstructure
+  - U.S. equities
+  - Formal verification
+  - Lean 4
+  - Price-time priority
+  - Parity allocation
+  - Stream consistency
+  - State identifiability
+license: MIT
+preferred-citation:
+  type: article
+  doi: "10.5281/zenodo.22343804"
+  title: "Foundations of Formal Market Microstructure in U.S. Equities: Machine-Checked Allocation, Composition, Necessary State, and Regulatory Traceability"
+  year: 2026
+  authors:
+    - family-names: "Noguer i Alonso"
+      given-names: "Miquel"
