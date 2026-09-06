@@ -9,5 +9,5 @@ export FORCE_SOURCE_DATE=1
 export TZ=UTC
 export LC_ALL=C.UTF-8
 
-latexmk -C fmm2.tex >/dev/null
-latexmk -pdf -interaction=nonstopmode -halt-on-error fmm2.tex
+latexmk -C fmm.tex >/dev/null
+latexmk -pdf -interaction=nonstopmode -halt-on-error fmm.tex

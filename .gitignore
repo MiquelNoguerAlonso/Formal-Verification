@@ -1,6 +1,6 @@
-.lake/
-__pycache__/
-*.pyc
+**/.lake/
+*.olean
+*.ilean
 *.aux
 *.bbl
 *.blg
@@ -8,5 +8,15 @@ __pycache__/
 *.fls
 *.log
 *.out
-*.toc
 *.synctex.gz
+*.toc
+*.lof
+*.lot
+*.nav
+*.snm
+*.vrb
+__pycache__/
+*.py[cod]
+.venv/
+.DS_Store
+Thumbs.db
