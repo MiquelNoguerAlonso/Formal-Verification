@@ -1,0 +1,41 @@
+name: Paper II verification
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+        working-directory: paper2/lmr
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: leanprover/lean-action@38fbc41a8c28c4cbaec22d7f7de508ec2e7c0dd9 # v1.5.0
+        with:
+          lake-package-directory: paper2/lmr
+          auto-config: "false"
+          build: "true"
+          test: "false"
+          lint: "false"
+          use-github-cache: "false"
+          use-mathlib-cache: "false"
+      - name: Audit all theorem declarations
+        run: python3 audit.py
+      - name: Build checker
+        run: lake build allocation_record
+      - name: Exercise sample allocation records
+        run: ./.lake/build/bin/allocation_record < sample.allocation
+      - name: Verify input rejection and diagnostics
+        run: python3 verify_checker.py
+      - name: Verify figure data and numerical contracts
+        run: |
+          lake env lean --run ../scripts/export_figure_data.lean > ../figures/figure_data.json
+          python3 ../scripts/generate_figures.py --check-only
