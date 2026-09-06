@@ -1,0 +1,52 @@
+{
+  "generator": "Python random.Random / Mersenne Twister",
+  "seed": 7,
+  "sample_size": 200000,
+  "distribution": "exponential",
+  "rate": 1.0,
+  "shared_sample": true,
+  "rows": [
+    {
+      "lambda_delta": 0.01,
+      "masked_count": 1996,
+      "analytic_probability": 0.009950166250831947,
+      "simulated_frequency": 0.00998
+    },
+    {
+      "lambda_delta": 0.05,
+      "masked_count": 9721,
+      "analytic_probability": 0.04877057549928599,
+      "simulated_frequency": 0.048605
+    },
+    {
+      "lambda_delta": 0.1,
+      "masked_count": 18965,
+      "analytic_probability": 0.09516258196404043,
+      "simulated_frequency": 0.094825
+    },
+    {
+      "lambda_delta": 0.25,
+      "masked_count": 44480,
+      "analytic_probability": 0.22119921692859512,
+      "simulated_frequency": 0.2224
+    },
+    {
+      "lambda_delta": 0.5,
+      "masked_count": 78978,
+      "analytic_probability": 0.3934693402873666,
+      "simulated_frequency": 0.39489
+    },
+    {
+      "lambda_delta": 1.0,
+      "masked_count": 126536,
+      "analytic_probability": 0.6321205588285577,
+      "simulated_frequency": 0.63268
+    },
+    {
+      "lambda_delta": 2.0,
+      "masked_count": 172891,
+      "analytic_probability": 0.8646647167633873,
+      "simulated_frequency": 0.864455
+    }
+  ]
+}
