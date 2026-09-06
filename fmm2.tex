@@ -1,0 +1,379 @@
+\pdfinfoomitdate=1
+\pdftrailerid{}
+\pdfsuppressptexinfo=15
+\pdfgentounicode=1
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs,array,longtable,xcolor}
+\usepackage{graphicx,caption}
+\usepackage[section]{placeins}
+\usepackage{listings,microtype,xurl,enumitem}
+\usepackage[authoryear,round]{natbib}
+\usepackage{hyperref}
+\hypersetup{colorlinks,linkcolor=blue!50!black,citecolor=blue!50!black,
+ urlcolor=blue!50!black,
+ pdftitle={Formal Market Microstructure in U.S. Equities II: Observable Conformance, Latent-State Identification, and Clock Uncertainty},
+ pdfauthor={Miquel Noguer i Alonso},
+ pdfsubject={Formal Market Microstructure, Paper II; DOI: 10.5281/zenodo.22392230},
+ pdfkeywords={U.S. equities, formal verification, market data, conformance, order identity, latent state, clock resolution, Lean 4},
+ pdflang={en-US}}
+\lstset{basicstyle=\ttfamily\footnotesize,columns=fullflexible,keepspaces=true,breaklines=true}
+\captionsetup{font=small,labelfont=bf}
+\setlength{\emergencystretch}{3em}
+\raggedbottom
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}
+\newtheorem{protocol}[theorem]{Protocol}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+\newcommand{\codeunderscore}{\char`\_\allowbreak}
+\newcommand{\lean}[1]{\ifmmode\mathtt{#1}\else{\ttfamily\let\_\codeunderscore #1}\fi}
+\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\PT}{\mathrm{PT}}
+\newcommand{\LPT}{\mathrm{LPT}}
+\newcommand{\clockcheck}{\mathrm{Conforms}_{\delta,k}}
+
+\title{Formal Market Microstructure\\
+in U.S.\ Equities II\\[4pt]
+\large Observable Conformance, Latent-State Identification,\\ and Clock Uncertainty}
+\author{Miquel Noguer i Alonso\\ Artificial Intelligence Finance Institute}
+\date{September 5, 2026}
+
+\input{tables/masking_rows.tex}
+
+\begin{document}
+\maketitle
+\begin{center}\small
+Paper DOI: \href{https://doi.org/10.5281/zenodo.22392230}{10.5281/zenodo.22392230}\\[2pt]
+\href{https://github.com/MiquelNoguerAlonso/Formal-Verification}{github.com/MiquelNoguerAlonso/Formal-Verification}
+\end{center}
+
+\begin{abstract}
+This paper develops a formal account of what market data can establish about the execution of an allocation rule. A correct matching algorithm and an observable matching decision are different achievements: a trade total can conceal a priority violation, an unknown wheel position can leave several explanations, and uncertain event order can make different executions observationally compatible. The analysis connects the verified price--time and persistent parity rules of the companion paper to three observation models for U.S. equities.
+
+First, transferring a positive fill between resting orders preserves its aggregate total while changing the vector of fills attached to those orders. A total-only projection therefore cannot identify that transfer, whereas an exact depth observation rejects it against an authenticated priority queue. Second, a finite wheel checker searches every rotation and positive allowance in a declared initial family. Its search has exactly $mL$ entries for $m$ participants and lot size $L$; acceptance exhibits an explaining state, and additional executions can only remove candidates. Worked examples show both immediate identification and persistent ambiguity. Third, a clock uncertainty checker compares fills by fixed order identity across admissible queue permutations. Acceptance grows with the uncertainty threshold. For two orders whose swapped allocations differ, masking occurs exactly when their timestamp gap lies within that threshold. An exponential-gap model supplies an analytic masking probability, illustrated by a reproducible simulation.
+
+Lean~4.22.0 checks 29 theorem declarations, none depending on classical choice, within an artifact containing 391 declarations. The mathematical guarantees concern the supplied model and inputs. They do not authenticate a feed, reconstruct hidden liquidity, or establish production compliance. The paper specifies the reconstruction and reporting obligations needed to apply its checkers, separates logical compatibility from statistical inference, and provides source code, reproducible figures, and worked instances. No exchange data are analyzed; empirical application requires validated feed reconstruction.
+\end{abstract}
+
+\noindent\textbf{Keywords:} U.S. equities; formal verification; market data; conformance; order identity; latent state; clock resolution; Lean 4.
+\clearpage
+\tableofcontents
+\clearpage
+
+\section{Introduction}
+
+An execution can satisfy the published matching rule and still be impossible for an outside observer to verify. The obstacle may be absent order identifiers, an unknown parity pointer, or incomplete evidence about priority. A proof about an allocation algorithm does not remove those information gaps. It provides a precise rule against which the remaining explanations can be checked.
+
+The companion paper \emph{Foundations of Formal Market Microstructure in U.S.\ Equities} \citep{noguer2026foundations} establishes executable semantics for strict price--time priority and a parity wheel that persists its pointer and unused lot allowance across executions. This paper asks what an observer can infer when only part of the execution record is available. Its three results have different strengths:
+\begin{enumerate}[leftmargin=2em]
+\item A total-preserving queue jump is invisible to a total-only projection and rejected when the exact priority queue and order-aligned fills are available (Theorems~\ref{thm:tape}--\ref{thm:depth}).
+\item A wheel checker searches a finite family of initial phase states. Acceptance is equivalent to existence of an explaining member, and consistency survives passage to a prefix (Theorems~\ref{thm:sound}--\ref{thm:prefix}). The family has $mL$ list entries; this count alone is not a behavioral information bound.
+\item A checker for uncertain event order preserves order identities when trying alternative queues. Acceptance is monotone in the uncertainty threshold. A nearby adjacent swap supplies a sufficient masking condition; a separate two-order theorem establishes an exact threshold when swapping changes the labelled allocation (Theorems~\ref{thm:masked}--\ref{thm:twoorder}).
+\end{enumerate}
+
+These results support a model-relative audit: rejection excludes the declared explanations, provided the inputs and admissible family are correct. Acceptance establishes compatibility with at least one explanation. Neither conclusion authenticates the input data or establishes legal compliance. Section~\ref{sec:audit} makes these obligations explicit.
+
+\paragraph{Related work.} Timestamp and liquidity measurement problems are studied by \citet{holden2014}; SIP latency and discrepancies with direct feeds are examined by \citet{bartlett2019latency} and \citet{ding2014slow}. Message-level analyses include \citet{aquilina2022} and \citet{kirilenko2017}. These studies motivate careful reconstruction; the present contribution specifies finite logical compatibility checks rather than estimating their empirical incidence. \citet{passmore2017formal} develop formal verification for financial algorithms, with subsequent exchange-matching work described by \citet{brennan2024imandra}. The rationing background is developed by \citet{moulin2000} and \citet{thomson2003}. The distinction between observed order and physical time also connects to \citet{lamport1978}.
+
+\paragraph{Scope.} The analysis concerns idealized allocation at a fixed price, with a declared eligible queue and rule. It does not model the entire trading system. In particular, finite timestamps do not automatically make exchange priority ambiguous: a sequenced message stream can preserve order within a timestamp. The clock model applies only to uncertainty remaining after trustworthy sequence and priority evidence has been used. No TAQ or ITCH dataset is analyzed here.
+
+\section{Objects and observation contracts}\label{sec:objects}
+
+Quantities are natural numbers of shares. A resting queue at one price is $Q=(q_1,\ldots,q_n)$ in priority order. An incoming quantity $x$ produces an allocation $A=(a_1,\ldots,a_n)$, indexed by that same order list. The package defines $\PT(Q,x)=\lean{priceTime}\,Q\,x$ as sequential filling and \lean{conformsPT} as the Boolean equality test against this vector. The companion paper characterizes this allocation by feasibility and strict serial priority.
+
+For the parity wheel, \lean{WState} consists of a cyclically ordered list of triples $(\mathrm{id},\mathrm{allocated},\mathrm{remaining})$ and an unused lot allowance. The quantity $L$ is the allocation quantum. The function \lean{runW\,L\,n\,st\,x} executes an incoming quantity with fuel $n$; \lean{initW\,L\,R} initializes from participant claims $R$. A partial visit retains its pointer and residual allowance. A completed visit advances the pointer and resets the allowance to $L$.
+
+\begin{definition}[Observation projections]\label{def:channels}
+For one allocation vector $A$, define:
+\begin{itemize}[leftmargin=2em]
+\item the \emph{total-only projection}, $\lean{tapeView}(A)=\sum_i a_i$;
+\item the \emph{exact depth projection}, $\lean{depthView}(A)=A$, aligned to authenticated order identities and priority;
+\item a \emph{clock uncertainty model}, in which the labelled fills are fixed but admissible priority queues vary over a declared swap neighbourhood (Section~\ref{sec:clock}).
+\end{itemize}
+For the wheel, \lean{execFills} reports the change in each participant's allocated counter, in a fixed external identifier order.
+\end{definition}
+
+The first projection deliberately retains only aggregate quantity. A real trade record contains additional fields. Daily TAQ includes trade and quote products derived from the consolidated feeds \citep[pp.~4, 17--20]{nyse2022taq}. The invisibility result below holds with other observed fields fixed; it does not equate the entire TAQ product with a single sum. At the order level, Nasdaq TotalView-ITCH provides order references for displayed-book events, but its architecture also supplies sequenced messages \citep[pp.~3--4, 13--15]{nasdaqitch}. Nanosecond timestamp precision is therefore not, by itself, a license to permute messages.
+
+All positional comparisons require matching lengths and correct alignment. In labelled comparisons, order identifiers must be unique, and the external identifier list must contain every relevant order exactly once. The definitions are total Lean functions even on malformed inputs, but the interpretation as an order audit requires these input conditions. Hidden interest, eligibility exceptions, and priority-changing events must be represented or excluded by the observation contract.
+
+\section{Tape versus depth}\label{sec:tape}
+
+A queue jump transfers $t$ shares of fill from an earlier position to a later position. Using $\mathbin{+\!\!+}$ for list concatenation, write
+\[
+\begin{aligned}
+H &= U\mathbin{+\!\!+}[a]\mathbin{+\!\!+}V\mathbin{+\!\!+}[b]\mathbin{+\!\!+}W,\\
+J &= U\mathbin{+\!\!+}[a-t]\mathbin{+\!\!+}V\mathbin{+\!\!+}[b+t]\mathbin{+\!\!+}W.
+\end{aligned}
+\]
+Subtraction is truncated on $\N$; the hypothesis $t\le a$ ensures an actual transfer. The definitions are \lean{honest} and \lean{jumped}. If feasibility of the altered execution is also required, the later order must have at least $t$ shares of unused capacity.
+
+\begin{theorem}[Total invisibility; \lean{jump\_tape\_invisible}]\label{thm:tape}
+For all lists $U,V,W$ and $t\le a$, $\lean{tapeView}(J)=\lean{tapeView}(H)$.
+\end{theorem}
+
+\begin{theorem}[Depth rejection; \lean{jump\_depth\_detected}]\label{thm:depth}
+If $\PT(Q,x)=H$ and $0<t\le a$, then $\lean{conformsPT}\,Q\,J\,x=\lean{false}$.
+\end{theorem}
+
+\begin{proposition}[Honest acceptance; \lean{honest\_conforms}]
+For every $Q,x$,
+\[\lean{conformsPT}\,Q\,\PT(Q,x)\,x=\lean{true}.\]
+\end{proposition}
+
+\begin{corollary}[What the total identifies]\label{cor:tape}
+Two allocations have the same total-only observation exactly when their sums agree. A price--time allocation has total $\min(x,\sum_i q_i)$. Consequently, for fixed $Q,x$, every feasible allocation attaining this total has the same total-only observation, regardless of priority.
+\end{corollary}
+\begin{proof}
+The first claim is the definition. The total identity follows from \lean{priceTime\_feasible} and the input bound \lean{priceTime\_sum\_le}; equivalently, sequential filling exhausts either the incoming quantity or the queue. The last claim is substitution into \lean{tapeView}.
+\end{proof}
+
+\begin{figure}[tb]
+\centering
+\includegraphics[width=.92\linewidth]{figures/tape_depth_comparison.png}
+\caption{Claims $(200,300)$ and incoming quantity $400$. The price--time allocation $(200,200)$ and the feasible jump $(100,300)$ have identical totals. Keeping order labels reveals the difference. Values are exported from Lean.}\label{fig:tape}
+\end{figure}
+
+Figure~\ref{fig:tape} isolates the information loss. It does not imply that every study using trades alone measures only feasibility: prices, timing, conditions and external evidence may answer other questions. It establishes that this total-only observation cannot distinguish the displayed priority transfer. Even checking the expected aggregate requires knowledge of the eligible queue and incoming quantity.
+
+\section{Wheel conformance with a latent phase}\label{sec:latent}
+
+A persistent parity wheel can give different next fills from different phase states. The companion paper proves separation results on nondegenerate states and exact finite-family information bounds under specified observation contracts. It also derives the reachable allowance identity
+\[
+\mathrm{allowance}=L-(A_p\bmod L)
+\]
+when the pointer $p$ has a live head and $A_p$ is its authenticated cumulative allocation from initialization. Thus the allowance is not independent extra information when that historical counter is known. Here the audit window starts with known remaining claims and cyclic order, but without that history or a known phase.
+
+\begin{definition}[Candidate family; \lean{candidates}]
+For $m$ claims $R$ and positive lot $L$, take every rotation $S$ of the participant list of $\lean{initW}\,L\,R$, and every allowance $a\in\{1,\ldots,L\}$. The resulting list of states $\langle S,a\rangle$ is $\lean{candidates}\,L\,R$.
+\end{definition}
+
+Allocated counters are initialized to zero as counters \emph{within the audit window}. For a candidate with allowance below $L$, this zero is a rebasing convention with unknown historical offsets; it is not a claim of reachability from zero historical fills. Where authenticated history is available, the allowance identity or other evidence should restrict the admissible family. The present checker permits the entire displayed family.
+
+\begin{theorem}[Candidate count; \lean{candidates\_length}]\label{thm:mL}
+The candidate list has length $|R|L$.
+\end{theorem}
+
+This is a search-space count. Repeated identifiers, exhausted claims or an uninformative execution stream can give redundant candidates or indistinguishable futures. The theorem neither proves $mL$ distinct behavioral classes for arbitrary $R$ nor imposes a universal $\lceil\log_2(mL)\rceil$ information requirement.
+
+\begin{definition}[Replay and decision]
+The function $\lean{replay}\,L\,n\,\mathrm{ids}\,st\,\vec x$ runs the quantities of $\vec x$ in sequence and emits one identifier-aligned fill vector per execution. Writing $\mathcal C=\lean{candidates}\,L\,R$, the checker returns true exactly when
+\[
+\bigvee_{st\in\mathcal C}
+\left[\lean{replay}\,L\,n\,(\mathrm{ids}\,R)\,st\,\vec x=\mathrm{obs}\right].
+\]
+Its Lean name is \lean{wheelConsistent}.
+\end{definition}
+
+The theorems quantify over the supplied fuel $n$ and therefore compare the supplied fuel-bounded semantics. For complete executions with $L>0$, use $n=1+\sum_i r_i$ from the initial remaining claims. The companion descent bound suffices because each positive step allocates at least one share, remaining claims only decrease, and each candidate allowance is positive. An input exceeding the remaining total leaves an unfilled residual. No arrivals, cancellations or changes of participant priority are introduced during this replay window.
+
+\begin{theorem}[Soundness; \lean{wheelConsistent\_sound}]\label{thm:sound}
+Acceptance supplies a state $st\in\mathcal C$ whose replay equals the entire observation sequence.
+\end{theorem}
+\begin{theorem}[Family-relative completeness; \lean{wheelConsistent\_complete}]
+If a member of $\mathcal C$ replays to the observations, the checker accepts.
+\end{theorem}
+\begin{theorem}[Acceptance from initialization; \lean{wheelConsistent\_honest}]\label{thm:honest}
+If $L>0$ and $|R|>0$, replay from $\lean{initW}\,L\,R$ is accepted, for every quantity stream and fuel.
+\end{theorem}
+\begin{theorem}[Prefix monotonicity; \lean{wheelConsistent\_prefix}]\label{thm:prefix}
+If the checker accepts $\vec x\mathbin{+\!\!+}\vec y$ with observations $o_1\mathbin{+\!\!+}o_2$, and $|o_1|=|\vec x|$, it accepts $\vec x$ with $o_1$.
+\end{theorem}
+\begin{proof}[Proof sketch]
+Soundness and completeness unfold the finite disjunction. The initialized state is a candidate by \lean{initW\_mem\_candidates}. The replay of a concatenated stream splits into the first replay and a replay from its terminal state (\lean{replay\_append}). The length identity \lean{replay\_length} then identifies the accepted prefix.
+\end{proof}
+
+\begin{corollary}[Filtering]
+Let $\mathcal C_k$ be the candidates explaining the first $k$ observed executions. Then $\mathcal C_0\supseteq\mathcal C_1\supseteq\cdots$. If the observations are generated by a member of the family, that member remains in every $\mathcal C_k$. An empty set excludes all members under the supplied inputs.
+\end{corollary}
+
+\begin{example}[Identification and ambiguity]\label{ex:filter}
+Take claims $(700,500,900,600,800)$ and $L=100$. Replay quantities $(250,130,420,90,310,260)$ from the initialized state with fuel $3501$. The successive survivor counts are
+\[
+500,\quad1,\quad1,\quad1,\quad1,\quad1,\quad1.
+\]
+The first fill $(100,100,50,0,0)$ selects participant~1 with full allowance. This is an evaluated example, not a generic one-execution identification theorem. On the same claims, a first execution of $500$ shares instead yields $(100,100,100,100,100)$ and leaves all 500 candidates: every rotation and allowance. These values are exported by the included Lean script.
+
+The three-participant kernel-checked instances \lean{ex\_honest} and \lean{ex\_reset\_rejected} use claims $(300,300,200)$ and quantities $(250,150)$. The persistent record is accepted; the reset record $((100,100,50),(100,50,0))$ is rejected by every candidate.
+\end{example}
+
+\begin{figure}[tb]
+\centering
+\includegraphics[width=.94\linewidth]{figures/latent_state_filter.png}
+\caption{Finite filtering for Example~\ref{ex:filter}. The left panel uses the six-execution stream; the right compares first quantities of 250 and 500 shares. A complete cycle can preserve pointer ambiguity. Counts are Lean evaluations of the actual replay checker.}\label{fig:filter}
+\end{figure}
+
+\begin{remark}[Computational scope]
+The direct procedure performs at most $mL$ replays; their costs also depend on fuel, stream length and identifier lookup. No production-scale runtime benchmark is claimed. Participant attribution and a stable eligible queue are separate requirements that this finite search cannot reconstruct.
+\end{remark}
+
+\section{Clock uncertainty with order identities}\label{sec:clock}
+
+Let $\delta$ express a declared bound on unresolved ordering uncertainty, after available sequencing evidence has been used. It need not equal a feed's timestamp unit. A tied timestamp in a trusted sequenced stream does not erase priority; an uncertainty neighbourhood should include only queues still consistent with the evidence. The finite model below takes its neighbourhood as an input assumption.
+
+\begin{definition}[Labelled queues and swap neighbourhoods]
+A queue entry is a triple $(\tau,i,q)$ of timestamp, unique order identifier and remaining size. Let $I$ be a fixed list containing those identifiers once each. Define $\LPT_I(Q,x)$ by computing price--time fills in queue order and restoring them to the fixed order $I$. This is \lean{labelledPriceTime}.
+
+The function $\lean{swaps1}\,\delta\,Q$ lists queues obtained by one adjacent swap with timestamp gap at most $\delta$. The function $\lean{nbhd}\,\delta\,k\,Q$ lists queues reachable by at most $k$ such swaps, including $Q$. The clock checker is
+\[
+\clockcheck(I,Q,A,x)=
+\bigvee_{Q'\in\lean{nbhd}\,\delta\,k\,Q}[A=\LPT_I(Q',x)].
+\]
+Its Lean name is \lean{conformsPT$\delta$}; the identifier list and observed fills stay fixed while the candidate queue changes. Natural-number timestamp gaps are encoded as both $\tau_a-\tau_b\le\delta$ and $\tau_b-\tau_a\le\delta$.
+\end{definition}
+
+\begin{theorem}[Monotonicity in uncertainty; \lean{conformsPT$\delta$\_mono}]\label{thm:delta_mono}
+If $\delta\le\delta'$, acceptance at $(\delta,k)$ implies acceptance at $(\delta',k)$, with $I,Q,A,x$ fixed.
+\end{theorem}
+\begin{proof}[Proof sketch]
+An allowed adjacent swap remains allowed when the bound grows (\lean{swaps1\_mono}). Induction on $k$ gives neighbourhood inclusion (\lean{nbhd\_mono}); the same explaining queue remains a witness.
+\end{proof}
+
+\begin{proposition}[Exact acceptance; \lean{conformsPT$\delta$\_of\_conformsPT}]
+If $A=\LPT_I(Q,x)$, the clock checker accepts for every $\delta,k$.
+\end{proposition}
+
+\begin{theorem}[Sufficient adjacent masking; \lean{jump\_masked}]\label{thm:masked}
+Let $Q=U\mathbin{+\!\!+}[a,b]\mathbin{+\!\!+}V$, let $Q'$ swap $a,b$, and suppose their timestamp gap is at most $\delta$. Then the checker accepts $\LPT_I(Q',x)$ at $(\delta,1)$ against $Q$.
+\end{theorem}
+
+This statement supplies an alternative explanation. To call the observed record a deviation from the original allocation additionally requires $\LPT_I(Q',x)\ne\LPT_I(Q,x)$. For a longer queue, the theorem does not give a converse: other allowed queues may explain the same fills.
+
+\begin{theorem}[Exact two-order threshold; \lean{twoOrder\_masking\_iff}]\label{thm:twoorder}
+Let $Q=[a,b]$, with $\LPT_I([b,a],x)\ne\LPT_I([a,b],x)$. The checker accepts the swapped record $\LPT_I([b,a],x)$ at $(\delta,1)$ if and only if $|\tau_a-\tau_b|\le\delta$.
+\end{theorem}
+\begin{proof}
+There are only two possible queues. Below the gap threshold the neighbourhood contains only $[a,b]$, whose fills differ by hypothesis. At or above the threshold it contains $[b,a]$, which explains the record.
+\end{proof}
+
+\begin{example}[Equal quantities, different orders]
+Orders A and B both claim $200$ shares, with timestamps $10$ and $12$. An incoming quantity of $200$ gives labelled fills $(200,0)$ in order A,B and $(0,200)$ in order B,A. The latter record is accepted at $\delta=2$ and rejected at $\delta=1$ (\lean{ex\_equal\_size\_clock\_jump}). Their equal sizes do not make their identities interchangeable.
+
+For the three-order queue $((10,1,200),(12,2,300),(40,3,100))$ and $x=400$, the swapped record in identifier order $(1,2,3)$ is $(100,300,0)$. It is accepted at $\delta=5$ and rejected at $\delta=1$ (\lean{ex\_masked}, \lean{ex\_not\_masked}).
+\end{example}
+
+\begin{proposition}[Exponential-gap experiment]\label{prop:poisson}
+Consider two orders with distinct swapped allocations, and let their nonnegative time gap $G$ have an exponential distribution with rate $\lambda>0$. In the one-swap uncertainty experiment with real threshold $\delta\ge0$, the masking probability is
+\[
+\Pr(G\le\delta)=1-e^{-\lambda\delta}.
+\]
+\end{proposition}
+\begin{proof}
+The experiment masks precisely on its threshold event. Integration of the density $\lambda e^{-\lambda g}$ over $0\le g\le\delta$ gives the expression. Adjacent gaps in a homogeneous Poisson process provide one source of this distribution.
+\end{proof}
+
+This calculation is ordinary real-valued probability, outside the Lean development. It uses the same threshold predicate as Theorem~\ref{thm:twoorder}; Lean timestamps themselves are natural numbers. The expression is not a universal detection-power formula for exchange feeds, longer queues, selected violations or uncertain reconstruction. Quantization, dependence, selection of pairs and sequence evidence can change the applicable experiment.
+
+\begin{figure}[tb]
+\centering
+\includegraphics[width=.90\linewidth]{figures/clock_masking.png}
+\caption{The exponential-gap experiment: analytic probability and simulated frequencies. The horizontal coordinate is the dimensionless product $\lambda\delta$. The simulation uses 200,000 exponential draws and seed 7; it contains no market observations.}\label{fig:clock}
+\end{figure}
+
+\begin{table}[tb]
+\centering
+\caption{Reproducible synthetic masking frequencies, using one common sample of 200,000 unit-rate exponential gaps and Python's \lean{random.Random(7)} generator. The source package includes the script and generated values.}\label{tab:mask}
+\begin{tabular}{rrr}
+\toprule
+$\lambda\delta$ & Simulated frequency & $1-e^{-\lambda\delta}$\\
+\midrule
+\maskingrows
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Audit protocol and interpretation}\label{sec:audit}
+
+The logical decision and the quality of its inputs are different obligations. The following protocol keeps the conclusion attached to both.
+
+\begin{protocol}[Model-relative conformance audit]\label{prot:audit}
+\begin{enumerate}[leftmargin=2em]
+\item \textbf{Declare the model.} Identify the rule, eligible order set, observation projection and initial-state family. For clock uncertainty, state $\delta$, swap budget $k$, and the evidence permitting each ambiguity. Retain trusted sequence information.
+\item \textbf{Reconstruct the input.} Supply the incoming quantity, remaining claims, stable identities, priority evidence and aligned execution fills. Account for loss, duplicates, cancellations, replacement, hidden liquidity and rule-specific eligibility. For a wheel, supply the cyclic participant order and attribution at the rule's granularity.
+\item \textbf{Run the decision.} Use \lean{conformsPT}, \lean{conformsPT$\delta$} or \lean{wheelConsistent}. Fix sufficient fuel for complete wheel executions. Preserve inputs and the artifact identifier with the result.
+\item \textbf{Report the finding.} A rejection means that no declared admissible explanation matches those inputs. Preserve the mismatching allocation or the exhausted candidate search. An acceptance means ``compatible with the declared model.'' Input-validation failures remain a separate outcome.
+\item \textbf{Separate population inference.} Counts are descriptive unless a sampling model is justified. A Clopper--Pearson interval applies to independent Bernoulli trials with a common probability \citep{clopper1934}; consecutive executions do not automatically satisfy that assumption. Dependent or selected samples need an appropriate separate analysis.
+\end{enumerate}
+\end{protocol}
+
+\begin{table}[tb]
+\centering
+\caption{Scope of the established comparisons. Clock uncertainty and latent-wheel filtering are separate checkers; their combination is not implemented here.}\label{tab:id}
+\small
+\begin{tabular}{@{}P{.23\linewidth}P{.20\linewidth}P{.24\linewidth}P{.25\linewidth}@{}}
+\toprule
+Case & Total only & Exact depth & Clock uncertainty\\
+\midrule
+Positive price--time fill transfer & Same total & Rejected for fixed honest queue & Adjacent swap: sufficient masking; two-order converse needs distinct fills\\[4pt]
+Wrong aggregate total & Rejected if expected total is known & Rejected under same input contract & Rejected when full unique labels and expected total are supplied\\[4pt]
+Wheel reset & Total can agree & Rejected in the stated instance & Not combined here\\[4pt]
+Unknown wheel phase & No phase identification from total alone in general & Candidate filtering & Not combined here\\[4pt]
+Executions with identical observed fills & Same projection & Indistinguishable by fills & Same labelled observation\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Logical error boundary.} Let $H$ be the declared conforming execution family and $C$ an observation map. The ideal compatibility test accepts $z$ exactly when $z\in C(H)$. If the actual execution is in $H$ and the observed record is its exact image, rejection is impossible. This is a conditional logical guarantee, not an unconditional claim about an empirical false-positive rate. Among executions outside $H$, the unresolved set is precisely
+\[
+\{e\notin H:\ \exists h\in H,\ C(e)=C(h)\}.
+\]
+It is the union of observation classes meeting $H$, restricted to nonconforming executions. This expression depends jointly on the observation map and the conforming family. This set identity follows directly from the compatibility definition; it is not an additional Lean declaration. Wrong reconstruction, an excluded legitimate state or a misspecified rule can invalidate an application even when the decision procedure is correct.
+
+\paragraph{Data contract.} An order-level replay needs order reference, price, side, remaining size, executed size and the ordering evidence relevant to priority. ITCH's displayed-order identifiers and sequenced architecture supply parts of this contract, not a complete model of all hidden or exceptional matching. A wheel audit additionally needs the participant categories and aggregation conventions used by the rule. Public trade totals do not supply this information. The package contains no parser certifying the transformation from any public feed to these inputs.
+
+\section{Limits and empirical application}\label{sec:limits}
+
+The finite wheel family fixes claims and cyclic order at the audit boundary. It allows unknown phase and rebased counters, not arbitrary arrivals, cancellations or changing eligibility during replay. Completeness is relative to that family and the supplied fuel. Historical information can restrict the family; absent information cannot be recovered by declaring an audit result.
+
+The clock model permits bounded adjacent swaps. Its combinatorial neighbourhood is an explicit uncertainty assumption, not a statistical description of a particular feed. The two-order converse does not characterize all longer-queue collisions. A full venue model would also connect transport sequencing, timestamp generation and priority rules to the admissible neighbourhood. This connection is not formalized here.
+
+All examples are synthetic. The Lean declarations establish deductive properties; the plotted candidate counts are evaluations of the executable definitions; the probability table is a reproducible simulation of a stated distribution. None supplies an empirical violation rate. Applying the protocol would require a validated reconstruction layer and documented sampling design before reporting venue- or symbol-level findings. The regulatory traceability modules inherited from Paper I are supporting source, not new legal results of this paper.
+
+\section{Formal artifact and reproducibility}\label{sec:artifact}
+
+\lean{TapeConformance.lean} contains 29 theorem declarations within a complete development of 391. Lean~4.22.0 checks the package using the core library only, with no Mathlib dependency. The source audit rejects proof placeholders, and \lean{Check.lean} prints the dependencies of every counted declaration. None of the 29 new declarations depends on \lean{Classical.choice}; 48 inherited declarations do. Of the seven new worked-instance declarations, six depend on no axioms; \lean{ex\_candidates} depends on propositional extensionality. Counts include elementary lemmas and evaluated examples, not 391 independent research contributions.
+
+Table~\ref{tab:decl} separates these dependencies. The probabilistic calculation, observation-class identity and binary-encoding discussion are mathematical exposition, not claims of additional Lean formalization. The three PNG figures have included inputs and regeneration scripts. The finite figure data are exported from Lean and checked against an independent Python implementation; the simulation records its generator, seed and sample size.
+
+\paragraph{Availability and citation.} This paper is identified by DOI \href{https://doi.org/10.5281/zenodo.22392230}{10.5281/zenodo.22392230}. The accompanying package includes the Lean development, LaTeX source, figures, data, build instructions, citation metadata and file hashes. The code will be made publicly available shortly at \url{https://github.com/MiquelNoguerAlonso/Formal-Verification}. The companion paper has the separate DOI \href{https://doi.org/10.5281/zenodo.22343804}{10.5281/zenodo.22343804}.
+
+\clearpage
+\begin{longtable}{@{}P{.16\linewidth}P{.66\linewidth}P{.12\linewidth}@{}}
+\caption{All 29 declarations in \lean{TapeConformance.lean}. Here p denotes \lean{propext} and q denotes \lean{Quot.sound}.}\label{tab:decl}\\
+\toprule
+Group & Declaration(s) & Axioms\\
+\midrule
+\endfirsthead
+\toprule
+Group & Declaration(s) & Axioms\\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+Total/depth & \lean{sum\_app} & p\\
+ & \lean{jump\_tape\_invisible}, \lean{jump\_depth\_detected}, \lean{honest\_conforms} & pq\\[3pt]
+Candidates & \lean{rotations\_length}, \lean{length\_flatMap\_const}, \lean{candidates\_length} & p\\
+ & \lean{rotations\_self}, \lean{initW\_mem\_candidates} & pq\\[3pt]
+Replay & \lean{replay\_length}, \lean{replay\_append} & p\\
+ & \lean{wheelConsistent\_sound}, \lean{wheelConsistent\_complete}, \lean{wheelConsistent\_honest}, \lean{wheelConsistent\_prefix} & pq\\[3pt]
+Clock & \lean{swaps1\_mono}, \lean{nbhd\_mono}, \lean{conformsPT$\delta$\_mono}, \lean{conformsPT$\delta$\_of\_conformsPT}, \lean{swap\_mem\_swaps1}, \lean{jump\_masked}, \lean{twoOrder\_masking\_iff} & pq\\[3pt]
+Instances & \lean{ex\_candidates} & p\\
+ & \lean{ex\_honest}, \lean{ex\_reset\_rejected}, \lean{ex\_tape\_jump}, \lean{ex\_masked}, \lean{ex\_not\_masked}, \lean{ex\_equal\_size\_clock\_jump} & none\\
+\end{longtable}
+
+\clearpage
+\phantomsection
+\addcontentsline{toc}{section}{References}
+\bibliographystyle{plainnat}
+\bibliography{refs}
+\end{document}

@@ -1,28 +1,26 @@
 cff-version: 1.2.0
-message: "If you use this paper or artifact, please cite it using this metadata."
-title: "Foundations of Formal Market Microstructure in U.S. Equities: Machine-Checked Allocation, Composition, Necessary State, and Regulatory Traceability"
+message: "Please cite Paper II using the preferred citation below."
 type: software
-repository-code: "https://github.com/MiquelNoguerAlonso/Formal-Verification"
-version: 3.7.1
+title: "Formal Market Microstructure in U.S. Equities II: Observable Conformance, Latent-State Identification, and Clock Uncertainty"
 date-released: 2026-09-05
 authors:
   - family-names: "Noguer i Alonso"
     given-names: "Miquel"
-abstract: "A persistent allocation wheel restores split-versus-combined consistency lost under reset rotation. The artifact proves exact fiberwise pointer minimality, reachable allowance recovery, nondegenerate phase separation, finite-family predictive-summary bounds, one-lot balance, and price-time conformance, with an analytic vanishing-lot corollary in the paper and dated regulatory traceability."
+abstract: "Executable observation-relative conformance checks for price-time allocation, latent parity-wheel phases, and uncertain event order, with identity-preserving comparisons, a two-order masking equivalence, and reproducible synthetic examples."
 keywords:
-  - Market microstructure
   - U.S. equities
-  - Formal verification
+  - formal verification
+  - market microstructure
   - Lean 4
-  - Price-time priority
-  - Parity allocation
-  - Stream consistency
-  - State identifiability
+  - conformance
+  - order identity
+  - latent state
+  - clock resolution
 license: MIT
 preferred-citation:
   type: article
-  doi: "10.5281/zenodo.22343804"
-  title: "Foundations of Formal Market Microstructure in U.S. Equities: Machine-Checked Allocation, Composition, Necessary State, and Regulatory Traceability"
+  title: "Formal Market Microstructure in U.S. Equities II: Observable Conformance, Latent-State Identification, and Clock Uncertainty"
+  doi: "10.5281/zenodo.22392230"
   year: 2026
   authors:
     - family-names: "Noguer i Alonso"

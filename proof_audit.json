@@ -1,5 +1,5 @@
 {
-  "theorem_count": 362,
+  "theorem_count": 391,
   "classical_choice_count": 48,
   "classical_choice_declarations": [
     "wheelOp_conserves",
@@ -59,25 +59,119 @@
     3,
     7
   ],
-  "pdf_pages": 40,
+  "pdf_pages": 13,
   "checker_regression_cases": 12,
   "latex_layout_warnings": 0,
-  "qualified_axiom_reports": 362,
-  "png_figures": 5,
-  "png_dpi": 450,
-  "nasdaq_order_types": 17,
-  "nasdaq_attributes": 13,
-  "independent_numerical_review": {
-    "figure_data_fields_checked": 28,
-    "reachable_runs_checked": 15306,
-    "state_compositions_checked": 168744,
-    "pass_wheel_bounds_checked": 15306,
-    "phase_pairs_separated": 2310
+  "qualified_axiom_reports": 391,
+  "paper_ii": {
+    "file": "fmm2.tex",
+    "pdf_pages": 13,
+    "module": "TapeConformance.lean",
+    "new_theorems": 29,
+    "new_classical_choice": 0,
+    "doi": "10.5281/zenodo.22392230",
+    "worked_instance_declarations": 7,
+    "axiom_free_worked_instances": 6,
+    "axiom_dependencies": {
+      "sum_app": [
+        "propext"
+      ],
+      "jump_tape_invisible": [
+        "propext",
+        "Quot.sound"
+      ],
+      "jump_depth_detected": [
+        "propext",
+        "Quot.sound"
+      ],
+      "honest_conforms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "rotations_length": [
+        "propext"
+      ],
+      "rotations_self": [
+        "propext",
+        "Quot.sound"
+      ],
+      "length_flatMap_const": [
+        "propext"
+      ],
+      "candidates_length": [
+        "propext"
+      ],
+      "initW_mem_candidates": [
+        "propext",
+        "Quot.sound"
+      ],
+      "replay_length": [
+        "propext"
+      ],
+      "replay_append": [
+        "propext"
+      ],
+      "wheelConsistent_sound": [
+        "propext",
+        "Quot.sound"
+      ],
+      "wheelConsistent_complete": [
+        "propext",
+        "Quot.sound"
+      ],
+      "wheelConsistent_honest": [
+        "propext",
+        "Quot.sound"
+      ],
+      "wheelConsistent_prefix": [
+        "propext",
+        "Quot.sound"
+      ],
+      "swaps1_mono": [
+        "propext",
+        "Quot.sound"
+      ],
+      "nbhd_mono": [
+        "propext",
+        "Quot.sound"
+      ],
+      "conformsPT\u03b4_mono": [
+        "propext",
+        "Quot.sound"
+      ],
+      "conformsPT\u03b4_of_conformsPT": [
+        "propext",
+        "Quot.sound"
+      ],
+      "swap_mem_swaps1": [
+        "propext",
+        "Quot.sound"
+      ],
+      "jump_masked": [
+        "propext",
+        "Quot.sound"
+      ],
+      "twoOrder_masking_iff": [
+        "propext",
+        "Quot.sound"
+      ],
+      "ex_candidates": [
+        "propext"
+      ],
+      "ex_honest": [],
+      "ex_reset_rejected": [],
+      "ex_tape_jump": [],
+      "ex_masked": [],
+      "ex_not_masked": [],
+      "ex_equal_size_clock_jump": []
+    },
+    "title": "Formal Market Microstructure in U.S. Equities II: Observable Conformance, Latent-State Identification, and Clock Uncertainty"
   },
-  "texlive_versions_verified": [
-    "2023",
-    "2026"
-  ],
-  "pdf_engine": "pdfLaTeX",
-  "pdf_tagging_enabled": false
+  "abstract_words": 300,
+  "png_figures": 3,
+  "independent_clock_cases": 2048,
+  "pdf_toolchains_checked": [
+    "TeX Live 2023 / pdfTeX 1.40.24",
+    "TeX Live 2026 / pdfTeX 1.40.29"
+  ]
 }
