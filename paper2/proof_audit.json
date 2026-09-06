@@ -1,0 +1,177 @@
+{
+  "theorem_count": 391,
+  "classical_choice_count": 48,
+  "classical_choice_declarations": [
+    "wheelOp_conserves",
+    "wheelOpFull_conserves",
+    "rule737Op_conserves",
+    "ladder_unique",
+    "wheelS_within_L",
+    "wheelS_within_L_explicit",
+    "wheelS_eq_wheel",
+    "wheel_balanced",
+    "wheelS_state_eq",
+    "wheel_within_L",
+    "uniform_eps",
+    "uniform_eps_relative",
+    "priceTime_tail_invisible",
+    "priceTime_boundary_invisible",
+    "rule737full_sum",
+    "t3_only_after_t2",
+    "hidden_depth_lower_bound",
+    "supplyAt_zero_of_none",
+    "matched_dominated_by_ask_price",
+    "crossPrice_global",
+    "wheel_exhausts",
+    "discreteCEA_feasible",
+    "matchNYSE_conserve",
+    "nyse_price_priority",
+    "effSpread2_neg_iff",
+    "midpoint_inside",
+    "midpoint2_strict_inside",
+    "mpl_no_trade_through",
+    "zip_zero_add",
+    "priceTime_comp",
+    "conformsPT_comp",
+    "saturated_future_equiv_iff",
+    "saturated_future_sufficient_injective",
+    "runW_stops_of_tot_lt_fuel",
+    "runWFull_stopped",
+    "runWFull_allocates_first",
+    "runWFull_comp",
+    "runWFull_comp_reachable",
+    "wheel_sum",
+    "rule737_sum",
+    "nextWFill_crosses_allowance",
+    "validWheelPhase_probe_equiv_implies",
+    "wheelFiberSufficient_pointer_injective",
+    "phaseState_allowance_probe",
+    "phaseState_probe_equiv_iff",
+    "phaseState_future_equiv_iff",
+    "wheelPhaseSufficient_injective",
+    "phaseState_full_summary_injective"
+  ],
+  "toolchain": "Lean 4.22.0",
+  "ledger_rows": 58,
+  "ledger_partition": [
+    43,
+    5,
+    3,
+    7
+  ],
+  "pdf_pages": 13,
+  "checker_regression_cases": 12,
+  "latex_layout_warnings": 0,
+  "qualified_axiom_reports": 391,
+  "paper_ii": {
+    "file": "fmm2.tex",
+    "pdf_pages": 13,
+    "module": "TapeConformance.lean",
+    "new_theorems": 29,
+    "new_classical_choice": 0,
+    "doi": "10.5281/zenodo.22392230",
+    "worked_instance_declarations": 7,
+    "axiom_free_worked_instances": 6,
+    "axiom_dependencies": {
+      "sum_app": [
+        "propext"
+      ],
+      "jump_tape_invisible": [
+        "propext",
+        "Quot.sound"
+      ],
+      "jump_depth_detected": [
+        "propext",
+        "Quot.sound"
+      ],
+      "honest_conforms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "rotations_length": [
+        "propext"
+      ],
+      "rotations_self": [
+        "propext",
+        "Quot.sound"
+      ],
+      "length_flatMap_const": [
+        "propext"
+      ],
+      "candidates_length": [
+        "propext"
+      ],
+      "initW_mem_candidates": [
+        "propext",
+        "Quot.sound"
+      ],
+      "replay_length": [
+        "propext"
+      ],
+      "replay_append": [
+        "propext"
+      ],
+      "wheelConsistent_sound": [
+        "propext",
+        "Quot.sound"
+      ],
+      "wheelConsistent_complete": [
+        "propext",
+        "Quot.sound"
+      ],
+      "wheelConsistent_honest": [
+        "propext",
+        "Quot.sound"
+      ],
+      "wheelConsistent_prefix": [
+        "propext",
+        "Quot.sound"
+      ],
+      "swaps1_mono": [
+        "propext",
+        "Quot.sound"
+      ],
+      "nbhd_mono": [
+        "propext",
+        "Quot.sound"
+      ],
+      "conformsPT\u03b4_mono": [
+        "propext",
+        "Quot.sound"
+      ],
+      "conformsPT\u03b4_of_conformsPT": [
+        "propext",
+        "Quot.sound"
+      ],
+      "swap_mem_swaps1": [
+        "propext",
+        "Quot.sound"
+      ],
+      "jump_masked": [
+        "propext",
+        "Quot.sound"
+      ],
+      "twoOrder_masking_iff": [
+        "propext",
+        "Quot.sound"
+      ],
+      "ex_candidates": [
+        "propext"
+      ],
+      "ex_honest": [],
+      "ex_reset_rejected": [],
+      "ex_tape_jump": [],
+      "ex_masked": [],
+      "ex_not_masked": [],
+      "ex_equal_size_clock_jump": []
+    },
+    "title": "Formal Market Microstructure in U.S. Equities II: Observable Conformance, Latent-State Identification, and Clock Uncertainty"
+  },
+  "abstract_words": 300,
+  "png_figures": 3,
+  "independent_clock_cases": 2048,
+  "pdf_toolchains_checked": [
+    "TeX Live 2023 / pdfTeX 1.40.24",
+    "TeX Live 2026 / pdfTeX 1.40.29"
+  ]
+}
