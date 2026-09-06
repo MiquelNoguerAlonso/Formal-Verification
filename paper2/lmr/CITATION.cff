@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "Please cite Paper II using the preferred citation below."
+type: software
+title: "Formal Market Microstructure in U.S. Equities II: Observable Conformance, Latent-State Identification, and Clock Uncertainty"
+date-released: 2026-09-05
+authors:
+  - family-names: "Noguer i Alonso"
+    given-names: "Miquel"
+abstract: "Executable observation-relative conformance checks for price-time allocation, latent parity-wheel phases, and uncertain event order, with identity-preserving comparisons, a two-order masking equivalence, and reproducible synthetic examples."
+keywords:
+  - U.S. equities
+  - formal verification
+  - market microstructure
+  - Lean 4
+  - conformance
+  - order identity
+  - latent state
+  - clock resolution
+license: MIT
+preferred-citation:
+  type: article
+  title: "Formal Market Microstructure in U.S. Equities II: Observable Conformance, Latent-State Identification, and Clock Uncertainty"
+  doi: "10.5281/zenodo.22392230"
+  year: 2026
+  authors:
+    - family-names: "Noguer i Alonso"
+      given-names: "Miquel"
