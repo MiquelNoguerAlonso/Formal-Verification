@@ -1,3 +1,24 @@
+# Formal Verification for U.S. Equity Market Microstructure
+
+Miquel Noguer i Alonso · Artificial Intelligence Finance Institute
+
+| Paper | PDF | DOI | Source |
+|---|---|---|---|
+| I — Foundations of Formal Market Microstructure in U.S. Equities | [Paper I](fmm.pdf) | [10.5281/zenodo.22343804](https://doi.org/10.5281/zenodo.22343804) | Root directory and `lmr/` |
+| II — Formal Market Microstructure in U.S. Equities II | [Paper II](paper2/fmm2.pdf) | [10.5281/zenodo.22392230](https://doi.org/10.5281/zenodo.22392230) | [`paper2/`](paper2/) |
+
+Paper I develops the allocation semantics, composition and necessary-state
+results. Paper II studies what supplied observations can establish about those
+rules, including latent-phase filtering and order-identity-preserving clock
+comparisons. Paper II contains the same 362-declaration baseline plus 29 new
+declarations, for 391 in its complete build; the two totals overlap.
+
+To verify Paper II, follow [`paper2/README.md`](paper2/README.md). The root
+citation metadata cites Paper I; [`paper2/CITATION.cff`](paper2/CITATION.cff)
+cites Paper II. Each paper includes its own source, figures and data.
+
+## Paper I package
+
 # Formal Verification
 
 Lean 4 proofs, executable allocation rules, and reproducible research on
